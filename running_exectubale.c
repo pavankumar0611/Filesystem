@@ -37,7 +37,33 @@ char *parse_commandline_argument(char *string)
 	return string;
 }
 
+//Check if the user passed the redirection to a file and save the file name if passed.
 
+int to_check_if_the_string_contains_redirection_to_file (char *original_string , int tocheck_redirection ,char *outfile_name) {
+
+	char *temp_string = original_string;
+
+	int i = 0;
+	while(temp_string[i++] != '\0') {
+
+		if(temp_string[i] == '>') {
+			tocheck_redirection = 1;
+			break;
+		}
+	}
+
+	if(tocheck_redirection) {
+		strcpy(outfile_name, &temp_string[i+ 2]);
+
+		original_string[i] = '\0';
+		return 1;
+	}
+	else
+		return 0;
+}
+
+//For the given shell exectuable commands check in path environment variable
+//appended to absolute path save in new_appended_path
 
 char *different_path_string(const char **string, char *new_appended_path, char *commandline_argument_passed)
 {
@@ -62,9 +88,10 @@ char *different_path_string(const char **string, char *new_appended_path, char *
 int main()
 {
 	pid_t pid;
-	char *args[2];
+	char *args[2], output_file_name[SIZE/2];
 	char buffer[SIZE];
-	int status;
+	int status, generating_output_to_file = 0;
+
 
 	while(1)
 	{
@@ -74,8 +101,11 @@ int main()
 			printf("Enter the executable you want to run\npavan:<%s>$", buffer);
 
 		fgets(string , sizeof(string), stdin);
-
 		string[strcspn(string, "\n")] = '\0';
+
+		generating_output_to_file = to_check_if_the_string_contains_redirection_to_file(string , generating_output_to_file ,output_file_name);
+		trim_trailing_space(string);
+
 		if(string[0] == 'c' && string[1] == 'd' ) {
 			char *temp_string = parse_commandline_argument(string);
 
@@ -85,7 +115,6 @@ int main()
 				printf("Path is invalid\n");
 
 			chdir(temp_string);
-
 		}
 		else if (access(string , X_OK) != 0) {
 
@@ -110,7 +139,6 @@ int main()
 					if(pid == 0) {
 						args[0] = fullpath_of_directory;
 						args[1] = NULL;
-
 						execv(args[0] , args);
 					}
 					else if(pid > 0)
@@ -130,6 +158,12 @@ int main()
 			if(pid == 0) {
 				args[0] = string;
 				args[1] = NULL;
+
+				if(generating_output_to_file) {
+					FILE *fp =      freopen( output_file_name, "w" , stdout);
+					if(fp == NULL)
+						printf("Error generating the output into a file\n");
+				}
 
 				execv(args[0] , args);
 			}
