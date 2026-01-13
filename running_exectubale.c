@@ -88,17 +88,22 @@ char *different_path_string(const char **string, char *new_appended_path, char *
 int main()
 {
 	pid_t pid;
-	char *args[2], output_file_name[SIZE/2];
+	char *args[5], output_file_name[SIZE/2];
 	char buffer[SIZE];
-	int status, generating_output_to_file = 0;
+	int status, generating_output_to_file ;
+	// ANSI escape code for green text
+	const char* green = "\033[0;32m";
+	// ANSI escape code to reset text color to default
+	const char* reset = "\033[0m";
 
 
 	while(1)
 	{
 		char string[SIZE];
+		generating_output_to_file = 0;
 
 		if(getcwd(buffer, SIZE) != NULL)
-			printf("Enter the executable you want to run\npavan:<%s>$", buffer);
+			printf("%spavan:<%s>$%s",green ,buffer, reset);
 
 		fgets(string , sizeof(string), stdin);
 		string[strcspn(string, "\n")] = '\0';
@@ -121,7 +126,7 @@ int main()
 			const char *environment_path = getenv("PATH");
 			char *args[2];
 			pid_t pid;
-			char fullpath_of_directory[SIZE];
+			char fullpath_of_directory[SIZE], *temporary_full_path;
 			int status;
 
 			for(;*environment_path  != '\0';) {
@@ -133,12 +138,21 @@ int main()
 					exit(1);
 				}
 
-				if(access(fullpath_of_directory, X_OK) == 0) {
+				int i = 0;
+				temporary_full_path = fullpath_of_directory;
+
+				char *token = strtok(fullpath_of_directory, " ");
+				while (token && i < 5) {
+					args[i++] = token;
+					token = strtok(NULL, " ");
+				}
+				args[i] = NULL;
+				temporary_full_path[strcspn(temporary_full_path, " ")] = '\0';
+
+				if(access(temporary_full_path, X_OK) == 0) {
 					status = 1;
 					pid = fork();
 					if(pid == 0) {
-						args[0] = fullpath_of_directory;
-						args[1] = NULL;
 						execv(args[0] , args);
 					}
 					else if(pid > 0)
